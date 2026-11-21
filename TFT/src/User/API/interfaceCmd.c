@@ -1237,7 +1237,7 @@ void sendQueueCmd(void)
           }
           break;
 
-        //case 420:  // M420
+        case 420:  // M420
         //  // ABL state and Z fade height will be set through parsACK.c after receiving confirmation
         //  // message from the printer to prevent wrong state and/or value in case of error
         //  break;
@@ -1435,7 +1435,7 @@ void sendQueueCmd(void)
         case 28:  // G28
           coordinateSetKnown(true);
           babystepReset();
-          storeCmd("M420\n");  // check bed leveling state
+          // storeCmd("M420\n");  // check bed leveling state
           break;
 
         #if BED_LEVELING_TYPE > 0  // if bed leveling is enabled

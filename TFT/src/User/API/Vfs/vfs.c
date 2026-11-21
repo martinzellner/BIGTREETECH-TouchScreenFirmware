@@ -179,10 +179,21 @@ char * isSupportedFile(const char * filename)
 {
   char * extPos = strrchr(filename, '.');  // check last "." in the name where extension is supposed to start
 
-  if (extPos != NULL && extPos[1] != 'g' && extPos[1] != 'G')
-    extPos = NULL;
+  if (extPos == NULL)
+    return NULL;
 
-  return extPos;
+  // Support standard G-code (.g, .gco, .gcode) and CNC CAM extensions (.nc, .ngc, .cnc, .tap, .ncc)
+  if (extPos[1] == 'g' || extPos[1] == 'G')
+    return extPos;
+
+  if (strcasecmp(extPos, ".nc") == 0 ||
+      strcasecmp(extPos, ".ngc") == 0 ||
+      strcasecmp(extPos, ".cnc") == 0 ||
+      strcasecmp(extPos, ".tap") == 0 ||
+      strcasecmp(extPos, ".ncc") == 0)
+    return extPos;
+
+  return NULL;
 }
 
 // return the long folder name if exists, otherwise the short one

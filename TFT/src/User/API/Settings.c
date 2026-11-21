@@ -96,6 +96,11 @@ void initSettings(void)
 
   infoSettings.probing_z_offset       = PROBING_Z_OFFSET;
   infoSettings.probing_z_raise        = PROBING_Z_RAISE;
+  infoSettings.touch_plate_thickness  = TOUCH_PLATE_THICKNESS;
+  infoSettings.jog_xy_rotation        = JOG_XY_ROTATION;
+  infoSettings.tool_change_pos[X_AXIS]= TOOL_CHANGE_X_POS;
+  infoSettings.tool_change_pos[Y_AXIS]= TOOL_CHANGE_Y_POS;
+  infoSettings.tool_change_pos[Z_AXIS]= TOOL_CHANGE_Z_POS;
   infoSettings.z_steppers_alignment   = Z_STEPPER_ALIGNEMENT;
   infoSettings.touchmi_sensor         = TOUCHMI_SENSOR;
 

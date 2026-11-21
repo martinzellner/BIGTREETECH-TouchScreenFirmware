@@ -871,6 +871,20 @@ void parseConfigKey(uint16_t index)
       SET_VALID_FLOAT_VALUE(infoSettings.probing_z_raise, MIN_PROBING_Z_RAISE, MAX_SIZE_LIMIT);
       break;
 
+    case C_INDEX_TOUCH_PLATE_THICKNESS:
+      SET_VALID_FLOAT_VALUE(infoSettings.touch_plate_thickness, 0.0f, 50.0f);
+      break;
+
+    case C_INDEX_JOG_XY_ROTATION:
+      SET_VALID_INT_VALUE(infoSettings.jog_xy_rotation, 0, 3);
+      break;
+
+    case C_INDEX_TOOL_CHANGE_POS:
+      if (key_seen("X")) SET_VALID_INT_VALUE(infoSettings.tool_change_pos[X_AXIS], MIN_SIZE_LIMIT, MAX_SIZE_LIMIT);
+      if (key_seen("Y")) SET_VALID_INT_VALUE(infoSettings.tool_change_pos[Y_AXIS], MIN_SIZE_LIMIT, MAX_SIZE_LIMIT);
+      if (key_seen("Z")) SET_VALID_INT_VALUE(infoSettings.tool_change_pos[Z_AXIS], MIN_SIZE_LIMIT, MAX_SIZE_LIMIT);
+      break;
+
     case C_INDEX_Z_STEPPERS_ALIGNMENT:
       infoSettings.z_steppers_alignment = getOnOff();
       break;

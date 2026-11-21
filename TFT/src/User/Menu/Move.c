@@ -56,6 +56,42 @@ void updateGantry(void)
   }
 }
 
+#ifdef ALTERNATIVE_MOVE_MENU
+typedef struct
+{
+  AXIS axis;
+  int8_t dir;
+} JOG_DIR;
+
+// D-pad slot order: [0]=UP(KEY_ICON_1), [1]=LEFT(KEY_ICON_4), [2]=DOWN(KEY_ICON_5), [3]=RIGHT(KEY_ICON_6)
+static const JOG_DIR jogRotTable[4][4] = {
+  {{Y_AXIS,  1}, {X_AXIS, -1}, {Y_AXIS, -1}, {X_AXIS,  1}},  // 0: 0 deg   (Up=Y+, Down=Y-, Left=X-, Right=X+)
+  {{X_AXIS,  1}, {Y_AXIS,  1}, {X_AXIS, -1}, {Y_AXIS, -1}},  // 1: 90 deg  (Up=X+, Down=X-, Left=Y+, Right=Y-)
+  {{Y_AXIS, -1}, {X_AXIS,  1}, {Y_AXIS,  1}, {X_AXIS, -1}},  // 2: 180 deg (Up=Y-, Down=Y+, Left=X+, Right=X-)
+  {{X_AXIS, -1}, {Y_AXIS, -1}, {X_AXIS,  1}, {Y_AXIS,  1}},  // 3: 270 deg (Up=X-, Down=X+, Left=Y-, Right=Y+)
+};
+
+static const uint8_t jogSlotKeys[4] = {KEY_ICON_1, KEY_ICON_4, KEY_ICON_5, KEY_ICON_6};
+
+static int32_t getAxisDirLabel(AXIS axis, int8_t dir)
+{
+  int8_t effDir = GET_BIT(infoSettings.inverted_axis, axis) ? -dir : dir;
+  if (axis == X_AXIS)
+    return (effDir > 0) ? LABEL_X_INC : LABEL_X_DEC;
+  else
+    return (effDir > 0) ? LABEL_Y_INC : LABEL_Y_DEC;
+}
+
+static void applyJogRotationLabels(MENUITEMS * items)
+{
+  uint8_t rot = infoSettings.jog_xy_rotation % 4;
+  for (uint8_t i = 0; i < 4; i++)
+  {
+    items->items[jogSlotKeys[i]].label.index = getAxisDirLabel(jogRotTable[rot][i].axis, jogRotTable[rot][i].dir);
+  }
+}
+#endif
+
 void menuMove(void)
 {
   MENUITEMS moveItems = {
@@ -90,41 +126,32 @@ void menuMove(void)
   mustStoreCmd("G91\n");
   mustStoreCmd("M114\n");
 
-  // keys position table
-  uint8_t table[TOTAL_AXIS][2] =
-    #ifdef ALTERNATIVE_MOVE_MENU
-      /*-------*-------*-------*---------*
-       | Z-(0) | Y+(1) | Z+(2) | unit(3) |
-       *-------*-------*-------*---------*
-       | X-(4) | Y-(5) | X+(6) | back(7) |
-       *-------*-------*-------*---------*
-       |X+ X-  |Y+ Y-  |Z+ Z-            */
-      {{6, 4}, {1, 5}, {2, 0}}
-    #else
-      /*-------*-------*-------*---------*
-       | X+(0) | Y+(1) | Z+(2) | unit(3) |
-       *-------*-------*-------*---------*
-       | X-(4) | Y-(5) | Z-(6) | back(7) |
-       *-------*-------*-------*---------*
-       |X+ X-  |Y+ Y-  |Z+ Z-            */
-      {{0, 4}, {1, 5}, {2, 6}}
-    #endif
-    ;
+  #ifdef ALTERNATIVE_MOVE_MENU
+    applyJogRotationLabels(&moveItems);
 
-  if (!GET_BIT(infoSettings.inverted_axis, X_AXIS))
-    LOAD_XYZ_LABEL_INDEX(table[X_AXIS][0], INC, table[X_AXIS][1], DEC, X);  // table[0] <--> INC(+) table[1] <--> DEC(+) if not inverted
-  else
-    LOAD_XYZ_LABEL_INDEX(table[X_AXIS][0], DEC, table[X_AXIS][1], INC, X);  // table[0] <--> DEC(-) table[1] <--> INC(-) if inverted
+    if (!GET_BIT(infoSettings.inverted_axis, Z_AXIS))
+      LOAD_XYZ_LABEL_INDEX(KEY_ICON_2, INC, KEY_ICON_0, DEC, Z);
+    else
+      LOAD_XYZ_LABEL_INDEX(KEY_ICON_2, DEC, KEY_ICON_0, INC, Z);
+  #else
+    // keys position table
+    uint8_t table[TOTAL_AXIS][2] = {{0, 4}, {1, 5}, {2, 6}};
 
-  if (!GET_BIT(infoSettings.inverted_axis, Y_AXIS))
-    LOAD_XYZ_LABEL_INDEX(table[Y_AXIS][0], INC, table[Y_AXIS][1], DEC, Y);
-  else
-    LOAD_XYZ_LABEL_INDEX(table[Y_AXIS][0], DEC, table[Y_AXIS][1], INC, Y);
+    if (!GET_BIT(infoSettings.inverted_axis, X_AXIS))
+      LOAD_XYZ_LABEL_INDEX(table[X_AXIS][0], INC, table[X_AXIS][1], DEC, X);
+    else
+      LOAD_XYZ_LABEL_INDEX(table[X_AXIS][0], DEC, table[X_AXIS][1], INC, X);
 
-  if (!GET_BIT(infoSettings.inverted_axis, Z_AXIS))
-    LOAD_XYZ_LABEL_INDEX(table[Z_AXIS][0], INC, table[Z_AXIS][1], DEC, Z);
-  else
-    LOAD_XYZ_LABEL_INDEX(table[Z_AXIS][0], DEC, table[Z_AXIS][1], INC, Z);
+    if (!GET_BIT(infoSettings.inverted_axis, Y_AXIS))
+      LOAD_XYZ_LABEL_INDEX(table[Y_AXIS][0], INC, table[Y_AXIS][1], DEC, Y);
+    else
+      LOAD_XYZ_LABEL_INDEX(table[Y_AXIS][0], DEC, table[Y_AXIS][1], INC, Y);
+
+    if (!GET_BIT(infoSettings.inverted_axis, Z_AXIS))
+      LOAD_XYZ_LABEL_INDEX(table[Z_AXIS][0], INC, table[Z_AXIS][1], DEC, Z);
+    else
+      LOAD_XYZ_LABEL_INDEX(table[Z_AXIS][0], DEC, table[Z_AXIS][1], INC, Z);
+  #endif
 
   moveItems.items[KEY_ICON_3] = itemMoveLen[item_moveLen_index];
 
@@ -138,7 +165,12 @@ void menuMove(void)
     {
       #ifdef ALTERNATIVE_MOVE_MENU
         case KEY_ICON_0: storeMoveCmd(Z_AXIS, -1); break;  // Z move down if no invert
-        case KEY_ICON_1: storeMoveCmd(Y_AXIS, 1); break;   // Y move increase if no invert
+        case KEY_ICON_1:
+        {
+          uint8_t rot = infoSettings.jog_xy_rotation % 4;
+          storeMoveCmd(jogRotTable[rot][0].axis, jogRotTable[rot][0].dir);
+          break;
+        }
         case KEY_ICON_2: storeMoveCmd(Z_AXIS, 1); break;   // Z move up if no invert
 
         case KEY_ICON_3:
@@ -147,9 +179,43 @@ void menuMove(void)
           menuDrawItem(&moveItems.items[key_num], key_num);
           break;
 
-        case KEY_ICON_4: storeMoveCmd(X_AXIS, -1); break;  // X move decrease if no invert
-        case KEY_ICON_5: storeMoveCmd(Y_AXIS, -1); break;  // Y move decrease if no invert
-        case KEY_ICON_6: storeMoveCmd(X_AXIS, 1); break;   // X move increase if no invert
+        case KEY_ICON_4:
+        {
+          uint8_t rot = infoSettings.jog_xy_rotation % 4;
+          storeMoveCmd(jogRotTable[rot][1].axis, jogRotTable[rot][1].dir);
+          break;
+        }
+        case KEY_ICON_5:
+        {
+          uint8_t rot = infoSettings.jog_xy_rotation % 4;
+          storeMoveCmd(jogRotTable[rot][2].axis, jogRotTable[rot][2].dir);
+          break;
+        }
+        case KEY_ICON_6:
+        {
+          uint8_t rot = infoSettings.jog_xy_rotation % 4;
+          storeMoveCmd(jogRotTable[rot][3].axis, jogRotTable[rot][3].dir);
+          break;
+        }
+
+        case KEY_TITLEBAR:
+        {
+          static const char * const rotNames[4] = {
+            "XY Jog 0 deg (Y+ Up, X+ Rt)",
+            "XY Jog 90 deg (X- Dn, Y- Rt)",
+            "XY Jog 180 deg (Y- Up, X- Rt)",
+            "XY Jog 270 deg (X+ Dn, Y+ Rt)"
+          };
+          infoSettings.jog_xy_rotation = (infoSettings.jog_xy_rotation + 1) % 4;
+          saveSettings();
+          applyJogRotationLabels(&moveItems);
+          for (uint8_t i = 0; i < 4; i++)
+          {
+            menuDrawItem(&moveItems.items[jogSlotKeys[i]], jogSlotKeys[i]);
+          }
+          addToast(DIALOG_TYPE_INFO, (char *)rotNames[infoSettings.jog_xy_rotation]);
+          break;
+        }
 
         case KEY_ICON_7: CLOSE_MENU(); break;
       #else

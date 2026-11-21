@@ -1,7 +1,7 @@
 #ifndef _CONFIGURATION_H_
 #define _CONFIGURATION_H_
 
-#define CONFIG_VERSION 20220518
+#define CONFIG_VERSION 20261121
 
 //====================================================================================================
 //=============================== Settings Configurable On config.ini ================================
@@ -684,6 +684,39 @@
 #define PROBING_Z_RAISE 20.0f  // Default: 20.0f
 
 /**
+ * CNC Touch Plate Thickness
+ * Thickness of the Z touch plate used in the Zeroing -> Z-Probe routine (G38.2).
+ * V1 Engineering Tiny Touch Plate = 0.5 mm.
+ *
+ *   Unit: [distance in mm]
+ *   Value range: [min: 0.0, max: 50.0]
+ */
+#define TOUCH_PLATE_THICKNESS 0.5f  // Default: 0.5f (V1E Tiny Touch Plate)
+
+/**
+ * Jog XY D-Pad Rotation (Move menu)
+ * Matches the XY D-pad to whichever side of the CNC table the operator stands on:
+ *   0 (0 deg):   Up=Y+, Down=Y-, Left=X-, Right=X+  (Front of table)
+ *   1 (90 deg):  Up=X+, Down=X-, Left=Y+, Right=Y-  (Left side: X- down/front, Y- right)
+ *   2 (180 deg): Up=Y-, Down=Y+, Left=X+, Right=X-  (Back of table)
+ *   3 (270 deg): Up=X-, Down=X+, Left=Y-, Right=Y+  (Right side)
+ *
+ *   Options: [0 deg: 0, 90 deg: 1, 180 deg: 2, 270 deg: 3]
+ */
+#define JOG_XY_ROTATION 1  // Default: 1 (90 deg — X- down/front, Y- right)
+
+/**
+ * CNC Tool Change Position (Machine Coordinates, G53)
+ * Moves Z up first, stops spindle (M05), then moves to front-accessible XY
+ * without disturbing your G92 workpiece origin.
+ *
+ *   Unit: [distance in mm]
+ */
+#define TOOL_CHANGE_X_POS  50   // Default: 50 mm (front edge when X- is toward operator)
+#define TOOL_CHANGE_Y_POS  50   // Default: 50 mm
+#define TOOL_CHANGE_Z_POS  80   // Default: 80 mm (high clearance for collet wrenches)
+
+/**
  * Z Steppers Auto-Alignment (ABL)
  * It allows to align multiple Z stepper motors using a bed probe by probing one position per stepper.
  * Enable this setting to show an icon in ABL menu allowing to run G34 command (it requires
@@ -1184,7 +1217,7 @@
  *
  *   Options: [disable: 0, auto-detect: 1, ABL: 2, BBL: 3, UBL: 4, MBL: 5]
  */
-#define BED_LEVELING_TYPE 1  // Default: 1
+#define BED_LEVELING_TYPE 0  // Default: 1
 
 /**
  * MBL Settings

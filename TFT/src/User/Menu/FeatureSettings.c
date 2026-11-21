@@ -20,6 +20,15 @@ const LABEL itemToggleSmart[ITEM_TOGGLE_SMART_NUM] =
   LABEL_SMART
 };
 
+#define ITEM_JOG_ROT_NUM 4
+const LABEL itemJogRot[ITEM_JOG_ROT_NUM] =
+{
+  {.address = "0 deg"},
+  {.address = "90 deg"},
+  {.address = "180 deg"},
+  {.address = "270 deg"}
+};
+
 // add key number index of the items
 typedef enum
 {
@@ -29,6 +38,7 @@ typedef enum
   SKEY_FILE_COMMENT_PARSING,
   SKEY_SERIAL_ALWAYS_ON,
   SKEY_SPEED,
+  SKEY_JOG_XY_ROTATION,
   SKEY_AUTO_LOAD_LEVELING,
   SKEY_PROBING_Z_OFFSET,
   SKEY_Z_STEPPERS_ALIGNMENT,
@@ -69,6 +79,10 @@ void updateFeatureSettings(uint8_t item_index)
 
     case SKEY_SPEED:
       infoSettings.move_speed = (infoSettings.move_speed + 1) % ITEM_SPEED_NUM;
+      break;
+
+    case SKEY_JOG_XY_ROTATION:
+      infoSettings.jog_xy_rotation = (infoSettings.jog_xy_rotation + 1) % ITEM_JOG_ROT_NUM;
       break;
 
     case SKEY_AUTO_LOAD_LEVELING:
@@ -144,6 +158,10 @@ void loadFeatureSettings(LISTITEM * item, uint16_t item_index, uint8_t itemPos)
         item->valueLabel = itemSpeed[infoSettings.move_speed].label;
         break;
 
+      case SKEY_JOG_XY_ROTATION:
+        item->valueLabel = itemJogRot[infoSettings.jog_xy_rotation % ITEM_JOG_ROT_NUM];
+        break;
+
       case SKEY_AUTO_LOAD_LEVELING:
         item->icon = iconToggle[infoSettings.auto_load_leveling];
         break;
@@ -217,6 +235,7 @@ void menuFeatureSettings(void)
     {CHARICON_TOGGLE_ON,   LIST_TOGGLE,        LABEL_FILE_COMMENT_PARSING,   LABEL_NULL},
     {CHARICON_TOGGLE_ON,   LIST_TOGGLE,        LABEL_SERIAL_ALWAYS_ON,       LABEL_NULL},
     {CHARICON_BLANK,       LIST_CUSTOMVALUE,   LABEL_MOVE_SPEED,             LABEL_NORMAL},
+    {CHARICON_BLANK,       LIST_CUSTOMVALUE,   {.address = "XY Jog Rotation"}, {.address = "90 deg"}},
     {CHARICON_TOGGLE_ON,   LIST_TOGGLE,        LABEL_AUTO_LOAD_LEVELING,     LABEL_NULL},
     {CHARICON_TOGGLE_ON,   LIST_TOGGLE,        LABEL_PROBING_Z_OFFSET,       LABEL_NULL},
     {CHARICON_TOGGLE_ON,   LIST_TOGGLE,        LABEL_Z_STEPPERS_ALIGNMENT,   LABEL_NULL},

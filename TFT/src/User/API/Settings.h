@@ -14,10 +14,10 @@ extern "C" {
 // Config version support
 // change if new elements/keywords are added/removed/changed in the configuration.h Format YYYYMMDD
 // this number should match CONFIG_VERSION in configuration.h
-#define CONFIG_SUPPPORT 20220518
+#define CONFIG_SUPPPORT 20261121
 
 #define FONT_FLASH_SIGN       20210522  // (YYYYMMDD) change if fonts require updating
-#define CONFIG_FLASH_SIGN     20220518  // (YYYYMMDD) change if any keyword(s) in config.ini is added or removed
+#define CONFIG_FLASH_SIGN     20261121  // (YYYYMMDD) change if any keyword(s) in config.ini is added or removed
 #define LANGUAGE_FLASH_SIGN   20230323  // (YYYYMMDD) change if any keyword(s) in language pack is added or removed
 #define ICON_FLASH_SIGN       20230323  // (YYYYMMDD) change if any icon(s) is added or removed
 
@@ -243,6 +243,9 @@ typedef struct
   uint8_t  inverted_axis;  // invert X Y Z axis and leveling Y axis (Bit Values)
   uint8_t  probing_z_offset;
   float    probing_z_raise;
+  float    touch_plate_thickness;
+  uint8_t  jog_xy_rotation;
+  int16_t  tool_change_pos[AXIS_NUM];  // X, Y, Z in machine coordinates (G53)
   uint8_t  z_steppers_alignment;
   uint8_t  touchmi_sensor;
 

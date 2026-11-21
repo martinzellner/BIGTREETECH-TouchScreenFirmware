@@ -30,7 +30,10 @@ void menuMain(void)
   if (infoSettings.status_screen != 1)
   {
     mainPageItems.items[7].icon = ICON_PRINT;
-    mainPageItems.items[7].label.index = LABEL_PRINT;
+    if (infoSettings.hotend_count == 0 && infoSettings.bed_en == 0)
+      mainPageItems.items[7].label.address = "Cut";
+    else
+      mainPageItems.items[7].label.index = LABEL_PRINT;
   }
 
   menuDrawPage(&mainPageItems);

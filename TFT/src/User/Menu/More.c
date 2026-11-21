@@ -33,15 +33,50 @@ void isPauseLoadUnload(void)
     REPLACE_MENU(menuLoadUnload);
 }
 
+const MENUITEMS moreItemsCnc = {
+  // title
+  LABEL_MORE,
+  // icon                          label
+  {
+    {ICON_PERCENTAGE,              LABEL_PERCENTAGE},
+    {ICON_FAN,                     LABEL_FAN},
+    {ICON_BABYSTEP,                LABEL_BABYSTEP},
+    {ICON_LOAD,                    {.address = "Tool Chg"}},
+    {ICON_GCODE,                   LABEL_TERMINAL},
+    {ICON_CUSTOM,                  LABEL_CUSTOM},
+    {ICON_FEATURE_SETTINGS,        LABEL_FEATURE_SETTINGS},
+    {ICON_BACK,                    LABEL_BACK},
+  }
+};
+
 void menuMore(void)
 {
   KEY_VALUES key_num = KEY_IDLE;
+  bool cncMode = (infoSettings.hotend_count == 0 && infoSettings.bed_en == 0);
 
-  menuDrawPage(&moreItems);
+  menuDrawPage(cncMode ? &moreItemsCnc : &moreItems);
 
   while (MENU_IS(menuMore))
   {
     key_num = menuKeyGetValue();
+    if (cncMode)
+    {
+      switch (key_num)
+      {
+        case KEY_ICON_0: OPEN_MENU(menuSpeed);           break;
+        case KEY_ICON_1: OPEN_MENU(menuFan);             break;
+        case KEY_ICON_2: OPEN_MENU(menuBabystep);        break;
+        case KEY_ICON_3: OPEN_MENU(menuToolChange);      break;
+        case KEY_ICON_4: OPEN_MENU(menuTerminal);        break;
+        case KEY_ICON_5: OPEN_MENU(menuCustom);          break;
+        case KEY_ICON_6: OPEN_MENU(menuFeatureSettings); break;
+        case KEY_ICON_7: CLOSE_MENU();                   break;
+        default: break;
+      }
+      loopProcess();
+      continue;
+    }
+
     switch (key_num)
     {
       case KEY_ICON_0:

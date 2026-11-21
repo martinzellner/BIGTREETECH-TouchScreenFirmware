@@ -6,6 +6,7 @@ extern "C" {
 #endif
 
 void menuZeroing(void);
+void menuToolChange(void);
 
 #ifdef __cplusplus
 }

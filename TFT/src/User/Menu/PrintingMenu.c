@@ -92,12 +92,17 @@ const ITEM itemIsPrinting[3] = {
   {ICON_BACK,                    LABEL_BACK},
 };
 
+static inline bool isCncMode(void)
+{
+  return (infoSettings.hotend_count == 0 && infoSettings.bed_en == 0);
+}
+
 static void setLayerHeightText(char * layer_height_txt)
 {
   float layer_height;
   layer_height = coordinateGetAxis(Z_AXIS);
 
-  if (layer_height > 0)
+  if (isCncMode() || layer_height > 0)
     sprintf(layer_height_txt, "%6.2fmm", layer_height);
   else
     strcpy(layer_height_txt, " --- mm ");  // leading and trailing space char so the text is centered on both rows
@@ -201,9 +206,9 @@ static void reDrawPrintingValue(uint8_t icon_pos, uint8_t draw_type)
 
   lvIcon.enabled[2] = false;
 
-  if (icon_pos == ICON_POS_BED && currentBCIndex != 0)  // Bed & Chamber
+  if (icon_pos == ICON_POS_BED && currentBCIndex != 0 && !isCncMode())  // Bed & Chamber
     lvIcon.iconIndex = printingIcon2nd[0];
-  else if (icon_pos == ICON_POS_SPD && currentSpeedID != 0)  // Speed & Flow
+  else if (icon_pos == ICON_POS_SPD && currentSpeedID != 0 && !isCncMode())  // Speed & Flow
     lvIcon.iconIndex = printingIcon2nd[1];
   else
     lvIcon.iconIndex = printingIcon[icon_pos];
@@ -222,15 +227,15 @@ static void reDrawPrintingValue(uint8_t icon_pos, uint8_t draw_type)
     switch (icon_pos)
     {
       case ICON_POS_EXT:
-        lvIcon.lines[0].text = (uint8_t *)heatDisplayID[currentTool];
+        lvIcon.lines[0].text = isCncMode() ? (uint8_t *)"X Pos" : (uint8_t *)heatDisplayID[currentTool];
         break;
 
       case ICON_POS_BED:
-        lvIcon.lines[0].text = (uint8_t *)heatDisplayID[BED + currentBCIndex];
+        lvIcon.lines[0].text = isCncMode() ? (uint8_t *)"Y Pos" : (uint8_t *)heatDisplayID[BED + currentBCIndex];
         break;
 
       case ICON_POS_FAN:
-        lvIcon.lines[0].text = (uint8_t *)fanID[currentFan];
+        lvIcon.lines[0].text = isCncMode() ? (uint8_t *)"Spindle" : (uint8_t *)fanID[currentFan];
         break;
 
       case ICON_POS_TIM:
@@ -241,7 +246,9 @@ static void reDrawPrintingValue(uint8_t icon_pos, uint8_t draw_type)
         break;
 
       case ICON_POS_Z:
-        if (layerDisplayType == SHOW_LAYER_BOTH)
+        if (isCncMode())
+          lvIcon.lines[0].text = (uint8_t *)"Z Pos";
+        else if (layerDisplayType == SHOW_LAYER_BOTH)
           setLayerHeightText(tempstrTop);
         else if (layerDisplayType == CLEAN_LAYER_NUMBER || layerDisplayType == CLEAN_LAYER_BOTH)
           lvIcon.lines[0].text = (uint8_t *)("        ");
@@ -250,7 +257,7 @@ static void reDrawPrintingValue(uint8_t icon_pos, uint8_t draw_type)
         break;
 
       case ICON_POS_SPD:
-        lvIcon.lines[0].text = (uint8_t *)speedId[currentSpeedID];
+        lvIcon.lines[0].text = isCncMode() ? (uint8_t *)"Feed" : (uint8_t *)speedId[currentSpeedID];
         break;
 
       default:
@@ -278,11 +285,17 @@ static void reDrawPrintingValue(uint8_t icon_pos, uint8_t draw_type)
     switch (icon_pos)
     {
       case ICON_POS_EXT:
-        sprintf(tempstrBottom, "%3d/%-3d", heatGetCurrentTemp(currentTool), heatGetTargetTemp(currentTool));
+        if (isCncMode())
+          sprintf(tempstrBottom, "%7.2f", coordinateGetAxis(X_AXIS));
+        else
+          sprintf(tempstrBottom, "%3d/%-3d", heatGetCurrentTemp(currentTool), heatGetTargetTemp(currentTool));
         break;
 
       case ICON_POS_BED:
-        sprintf(tempstrBottom, "%3d/%-3d", heatGetCurrentTemp(BED + currentBCIndex), heatGetTargetTemp(BED + currentBCIndex));
+        if (isCncMode())
+          sprintf(tempstrBottom, "%7.2f", coordinateGetAxis(Y_AXIS));
+        else
+          sprintf(tempstrBottom, "%3d/%-3d", heatGetCurrentTemp(BED + currentBCIndex), heatGetTargetTemp(BED + currentBCIndex));
         break;
 
       case ICON_POS_FAN:
@@ -300,7 +313,7 @@ static void reDrawPrintingValue(uint8_t icon_pos, uint8_t draw_type)
         break;
 
       case ICON_POS_Z:
-        if (layerDisplayType == SHOW_LAYER_HEIGHT)  // layer height
+        if (isCncMode() || layerDisplayType == SHOW_LAYER_HEIGHT)  // CNC Z depth (signed) or layer height
           setLayerHeightText(tempstrBottom);
         else if (layerDisplayType == SHOW_LAYER_NUMBER || layerDisplayType == SHOW_LAYER_BOTH)  // layer number or height & number (both)
           setLayerNumberTxt(tempstrBottom);
@@ -309,7 +322,7 @@ static void reDrawPrintingValue(uint8_t icon_pos, uint8_t draw_type)
         break;
 
       case ICON_POS_SPD:
-        sprintf(tempstrBottom, "%3d%%", speedGetCurPercent(currentSpeedID));
+        sprintf(tempstrBottom, "%3d%%", speedGetCurPercent(isCncMode() ? 0 : currentSpeedID));
         break;
 
       default:
@@ -329,6 +342,14 @@ static inline void toggleInfo(void)
 {
   if (nextScreenUpdate(TOGGLE_TIME))
   {
+    if (isCncMode())
+    {
+      currentSpeedID = 0;  // keep Feedrate % (M220), never toggle to extruder Flow
+      speedQuery();
+      coordinateQuery(MS_TO_SEC(TOGGLE_TIME));
+      return;
+    }
+
     if (infoSettings.hotend_count > 1)
     {
       currentTool = (currentTool + 1) % infoSettings.hotend_count;
@@ -454,6 +475,10 @@ void printSummaryPopup(void)
     sprintf(tempstr, "\n\n%s", (char *)textSelect(LABEL_PROCESS_ABORTED));
     strcat(showInfo, tempstr);
   }
+  else if (isCncMode())
+  {
+    // CNC mode: omit 3D-printer filament statistics
+  }
   else if (infoPrintSummary.length + infoPrintSummary.weight + infoPrintSummary.cost == 0)  // all equals 0
   {
     strcat(showInfo, (char *)textSelect(LABEL_NO_FILAMENT_STATS));
@@ -508,6 +533,8 @@ void menuPrinting(void)
   float curLayerHeight = 0;
   float usedLayerHeight = 0;
   float prevLayerHeight = 0;
+  float prevX = 0;
+  float prevY = 0;
   uint16_t curLayerNumber = 0;
   uint16_t prevLayerNumber = 0;
   bool layerDrawEnabled = false;
@@ -543,21 +570,39 @@ void menuPrinting(void)
   {
     //Scroll_DispString(&titleScroll, LEFT);  // scroll display file name will take too many CPU cycles
 
-    // check nozzle temp change
-    if (nowHeat.T[currentTool].current != heatGetCurrentTemp(currentTool) ||
-        nowHeat.T[currentTool].target != heatGetTargetTemp(currentTool))
+    if (isCncMode())
     {
-      nowHeat.T[currentTool].current = heatGetCurrentTemp(currentTool);
-      nowHeat.T[currentTool].target = heatGetTargetTemp(currentTool);
-      reDrawPrintingValue(ICON_POS_EXT, LIVE_INFO_BOTTOM_ROW);
+      float curX = coordinateGetAxis(X_AXIS);
+      float curY = coordinateGetAxis(Y_AXIS);
+      if (ABS(curX - prevX) >= 0.05f)
+      {
+        prevX = curX;
+        reDrawPrintingValue(ICON_POS_EXT, LIVE_INFO_BOTTOM_ROW);
+      }
+      if (ABS(curY - prevY) >= 0.05f)
+      {
+        prevY = curY;
+        reDrawPrintingValue(ICON_POS_BED, LIVE_INFO_BOTTOM_ROW);
+      }
     }
-
-    // check bed temp change
-    if (nowHeat.T[BED].current != heatGetCurrentTemp(BED) || nowHeat.T[BED].target != heatGetTargetTemp(BED))
+    else
     {
-      nowHeat.T[BED].current = heatGetCurrentTemp(BED);
-      nowHeat.T[BED].target = heatGetTargetTemp(BED);
-      reDrawPrintingValue(ICON_POS_BED, LIVE_INFO_BOTTOM_ROW);
+      // check nozzle temp change
+      if (nowHeat.T[currentTool].current != heatGetCurrentTemp(currentTool) ||
+          nowHeat.T[currentTool].target != heatGetTargetTemp(currentTool))
+      {
+        nowHeat.T[currentTool].current = heatGetCurrentTemp(currentTool);
+        nowHeat.T[currentTool].target = heatGetTargetTemp(currentTool);
+        reDrawPrintingValue(ICON_POS_EXT, LIVE_INFO_BOTTOM_ROW);
+      }
+
+      // check bed temp change
+      if (nowHeat.T[BED].current != heatGetCurrentTemp(BED) || nowHeat.T[BED].target != heatGetTargetTemp(BED))
+      {
+        nowHeat.T[BED].current = heatGetCurrentTemp(BED);
+        nowHeat.T[BED].target = heatGetTargetTemp(BED);
+        reDrawPrintingValue(ICON_POS_BED, LIVE_INFO_BOTTOM_ROW);
+      }
     }
 
     // check fan speed change
@@ -586,7 +631,7 @@ void menuPrinting(void)
     }
 
     // Z_AXIS coordinate
-    if (layerDisplayType == SHOW_LAYER_BOTH || layerDisplayType == SHOW_LAYER_HEIGHT)
+    if (isCncMode() || layerDisplayType == SHOW_LAYER_BOTH || layerDisplayType == SHOW_LAYER_HEIGHT)
     {
       curLayerHeight = coordinateGetAxis(Z_AXIS);
 
@@ -598,7 +643,7 @@ void menuPrinting(void)
         if (layerDrawEnabled == true)
         {
           usedLayerHeight = curLayerHeight;
-          reDrawPrintingValue(ICON_POS_Z, (layerDisplayType == SHOW_LAYER_BOTH) ? LIVE_INFO_TOP_ROW : LIVE_INFO_BOTTOM_ROW);
+          reDrawPrintingValue(ICON_POS_Z, (!isCncMode() && layerDisplayType == SHOW_LAYER_BOTH) ? LIVE_INFO_TOP_ROW : LIVE_INFO_BOTTOM_ROW);
         }
 
         if (ABS(curLayerHeight - prevLayerHeight) < LAYER_DELTA)
@@ -608,7 +653,7 @@ void menuPrinting(void)
       }
     }
 
-    if (layerDisplayType == SHOW_LAYER_BOTH || layerDisplayType == SHOW_LAYER_NUMBER)
+    if (!isCncMode() && (layerDisplayType == SHOW_LAYER_BOTH || layerDisplayType == SHOW_LAYER_NUMBER))
     {
       curLayerNumber = getPrintLayerNumber();
 
@@ -653,13 +698,23 @@ void menuPrinting(void)
     switch (key_num)
     {
       case PS_KEY_0:
-        heatSetCurrentIndex(-1);  // set last used hotend index
-        OPEN_MENU(menuHeat);
+        if (isCncMode())
+          coordinateQuery(0);
+        else
+        {
+          heatSetCurrentIndex(-1);  // set last used hotend index
+          OPEN_MENU(menuHeat);
+        }
         break;
 
       case PS_KEY_1:
-        heatSetCurrentIndex(-2);  // set last used bed index
-        OPEN_MENU(menuHeat);
+        if (isCncMode())
+          coordinateQuery(0);
+        else
+        {
+          heatSetCurrentIndex(-2);  // set last used bed index
+          OPEN_MENU(menuHeat);
+        }
         break;
 
       case PS_KEY_2:
@@ -672,6 +727,11 @@ void menuPrinting(void)
         break;
 
       case PS_KEY_4:
+        if (isCncMode())
+        {
+          coordinateQuery(0);
+          break;
+        }
         layerDisplayType++;  // trigger cleaning previous values
 
         if (layerDisplayType != CLEAN_LAYER_HEIGHT)
